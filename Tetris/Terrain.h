@@ -1,25 +1,31 @@
 #pragma once
 #include <SFML/System.hpp>
 #include <SFML/Graphics.hpp>
-#include <iostream>
-#include <random>
-#include <vector>
+#include "Matrice.h"
+
+using namespace std;
 
 class Terrain: public sf::Drawable, public sf::Transformable
 {
+private:
+    sf::VertexArray plateau;
+    sf::Texture textureMap;
 public:
 
-    //map.creerMap("Texture/palette.png", sf::Vector2u(30, 30), 10, 20)
+    Matrice tableau = Matrice(22, 10);
+    string lien;
 
-    bool creerMap(const std::string lien, sf::Vector2u tailleTuille, unsigned int largeur, unsigned int hauteur)
+    inline Matrice getTerrain() { return tableau; }
+
+    bool creerMap(const string lien, sf::Vector2u tailleTuille, unsigned int largeur, unsigned int hauteur, int decalage )
     {
-        this->tableau;
+        this->lien = lien;
         int i, j;
         sf::Vertex* carre;
         int nbCase, posX, posY;
 
         // on charge la texture de la palette
-        if (!textureMap.loadFromFile(lien))
+        if (!textureMap.loadFromFile(this->lien))
             return false;
 
         // on redimensionne le tableau de vertex pour qu'il puisse contenir tout le niveau
@@ -30,7 +36,42 @@ public:
         for (i = 0; i < largeur; i++) {
             for (j = 0; j < hauteur; j++) {
                 // on récupère le numéro de tuile courant
-                nbCase = this->tableau[i][j];
+                nbCase = tableau.get(i, j);
+
+                // on en déduit sa position dans la texture du tileset
+                posX = nbCase % (textureMap.getSize().x / tailleTuille.x +1000);
+                posY = nbCase / (textureMap.getSize().x / tailleTuille.x+1000);
+
+                // on récupère un pointeur vers le carré à définir dans le tableau de vertex
+                carre = &plateau[(i + j * largeur) * 4];
+
+                // on définit ses quatre coins
+                carre[0].position = sf::Vector2f(i * tailleTuille.x, j * tailleTuille.y);
+                carre[1].position = sf::Vector2f((i + 1) * tailleTuille.x, j * tailleTuille.y);
+                carre[2].position = sf::Vector2f((i + 1) * tailleTuille.x, (j + 1) * tailleTuille.y);
+                carre[3].position = sf::Vector2f(i * tailleTuille.x, (j + 1) * tailleTuille.y);
+
+                // on définit ses quatre coordonnées de texture
+                carre[0].texCoords = sf::Vector2f(posX * tailleTuille.x, posY * tailleTuille.y);
+                carre[1].texCoords = sf::Vector2f((posX + 1) * tailleTuille.x, posY * tailleTuille.y);
+                carre[2].texCoords = sf::Vector2f((posX + 1) * tailleTuille.x, (posY + 1) * tailleTuille.y);
+                carre[3].texCoords = sf::Vector2f(posX * tailleTuille.x, (posY + 1) * tailleTuille.y);
+            }
+        }
+        return true;
+    }
+
+    bool actualiseMap(sf::Vector2u tailleTuille, unsigned int largeur, unsigned int hauteur)
+    {
+        int i, j;
+        sf::Vertex* carre;
+        int nbCase, posX, posY;
+
+        // on remplit le tableau de vertex, avec un carré par tuile
+        for (i = 0; i < largeur; i++) {
+            for (j = 0; j < hauteur; j++) {
+                // on récupère le numéro de tuile courant
+                nbCase = tableau.get(i, j);
 
                 // on en déduit sa position dans la texture du tileset
                 posX = nbCase % (textureMap.getSize().x / tailleTuille.x);
@@ -55,19 +96,9 @@ public:
         return true;
     }
 
-    /*int getEmplacement() {
-        Donne un nombre aléatoire qui désigne une piece de la map
-        std::random_device rd;
-        std::default_random_engine eng(rd());
-        std::uniform_int_distribution<int> distr(1, 8);
-        return distr(eng);
-    }*/
-
-    /*int getTableau() {
-        return this->tableau;
-    }*/
-
-    int tableau[10][20]{ 0 };
+    void restart() {
+        tableau = Matrice(22, 10);
+    }
 
 private:
 
@@ -82,7 +113,4 @@ private:
         // et on dessine enfin le tableau de vertex
         target.draw(plateau, states);
     }
-
-    sf::VertexArray plateau;
-    sf::Texture textureMap;
 };
